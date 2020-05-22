@@ -3,6 +3,7 @@
 import inspect
 import warnings
 import itertools
+import typing
 
 
 class StaticTypeError(Exception):
@@ -82,7 +83,7 @@ def _type_checker(func, error_type):
         # Check types for all arguments
         for arg_name, arg in itertools.chain(zip(meta.args, args), kwargs.items()):
             expected_type = meta.annotations[arg_name]
-            if isinstance(arg, expected_type):
+            if is_type(arg, expected_type):
                 continue
 
             warn_or_raise(f"Argument '{arg_name}' got wrong type. Expected {expected_type}, got {type(arg)}", error_type)
@@ -90,6 +91,52 @@ def _type_checker(func, error_type):
         return func(*args, **kwargs)
 
     return wrapper
+
+
+def is_type(input_object, expected_type) -> bool:
+    """
+    Check if an object corresponds to a given type.
+
+    Works similarly to isinstance but also works on select 'typing' types.
+    """
+    try:
+        module = expected_type.__module__
+    except AttributeError:
+        module = "default"
+
+    if module == "typing":
+
+        if isinstance(input_object, dict):
+            right_types = []
+            for key, value in input_object.items():
+                right_types.append(
+                    all([
+                        isinstance(key, expected_type.__args__[0]),
+                        isinstance(value, expected_type.__args__[1])
+                    ])
+                )
+            return all(right_types)
+
+        if isinstance(input_object, (list, tuple)):
+            accepted_types = expected_type.__args__
+            if not isinstance(accepted_types, list):
+                accepted_types = [accepted_types] * len(input_object)
+
+            right_types = [is_type(element, accepted_types[i]) for i, element in enumerate(input_object)]
+
+            return all(right_types)
+
+        if expected_type.__origin__ == typing.Union:
+            for accepted_type in expected_type.__args__:
+                if isinstance(input_object, accepted_type):
+                    return True
+
+        return False
+    if input_object is None:
+        if expected_type is None:
+            return True
+        return False
+    return isinstance(input_object, expected_type)
 
 
 def enforce(func):
@@ -126,7 +173,7 @@ def convert(func):
         new_args = []
         for arg_name, arg in zip(meta.args, args):
             if arg_name in meta.annotations.keys():
-                if isinstance(arg, meta.annotations[arg_name]):
+                if is_type(arg, meta.annotations[arg_name]):
                     new_args.append(arg)
                     continue
                 try:
@@ -139,7 +186,7 @@ def convert(func):
         new_kwargs = {}
         for kwarg_name, kwarg in kwargs.items():
             if kwarg_name in meta.annotations.keys():
-                if isinstance(kwarg, meta.annotations[kwarg_name]):
+                if is_type(kwarg, meta.annotations[kwarg_name]):
                     new_kwargs[kwarg_name] = kwarg
                     continue
                 try:
