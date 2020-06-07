@@ -7,7 +7,7 @@ with open("README.md") as file:
 
 setuptools.setup(
     name="statictypes",
-    version="0.0.1",
+    version="0.0.2",
     author="Erik Schytt Holmlund",
     author_email="erik-holmlund@hotmail.com",
     description="Enforce type annotations",
