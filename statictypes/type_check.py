@@ -69,6 +69,9 @@ def _type_checker(func, error_type):
     # Check which annotations are missing
     missing_annotations = []
     for arg_name in arg_names:
+        # Check if self argument of method class
+        if arg_name.startswith("self"):
+            continue
         if meta.annotations.get(arg_name) is None:
             missing_annotations.append(arg_name)
     if missing_annotations != []:
@@ -82,6 +85,10 @@ def _type_checker(func, error_type):
         """Wrap the outside function in type checking function."""
         # Check types for all arguments
         for arg_name, arg in itertools.chain(zip(meta.args, args), kwargs.items()):
+            # Check if self argument of method class
+            if arg_name.startswith("self"):
+                continue
+
             expected_type = meta.annotations[arg_name]
             if is_type(arg, expected_type):
                 continue

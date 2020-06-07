@@ -3,8 +3,18 @@ import unittest
 from typing import Optional, Union, List, Tuple, Dict
 import numpy as np
 
+class MyClass:
+    """Example class to use in tests."""
+    @statictypes.enforce
+    def __init__(self, arg1: str) -> None:
+        self.arg1 = arg1
+
+    def update(self):
+        self.arg1 += ". Addition"
+
 
 class TestStaticTypes(unittest.TestCase):
+    """Unit tests."""
 
     def test_enforce(self):
 
@@ -78,6 +88,11 @@ class TestStaticTypes(unittest.TestCase):
             return " ".join([str(num) for num in nums])
 
         self.assertEqual(myfunc(np.array([1, 2, 3])), "1 2 3")
+
+    def test_class_methods(self):
+        """Check that 'self' is not type-checked."""
+        myclass = MyClass("hello")
+        myclass.update()
 
 
 if __name__ == "__main__":
